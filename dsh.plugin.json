@@ -1,0 +1,12 @@
+{
+  "name": "juzi-at-mention",
+  "description": "Codex-style @path references for the DeepSeek Harness web GUI",
+  "version": "0.6.0",
+  "entry": {
+    "name": "juzi-at-mention",
+    "inject": []
+  },
+  "client": {
+    "platform": "web"
+  }
+}
