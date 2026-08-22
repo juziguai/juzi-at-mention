@@ -18,7 +18,6 @@ import { AtFileRuntime } from './runtime.ts'
 import { TYPERT_MANIFEST } from './typert.ts'
 import { registerAtFileSettings } from './settings.ts'
 import { mentionPreStep } from './mention.ts'
-import { SessionReferenceResolver } from '@deepseek-ai/dsh-session-reference'
 import { sessionReferencePreStep } from './session-reference.ts'
 import {
   DEFAULT_IGNORE_DIRS,
@@ -31,8 +30,8 @@ import type { ResolvedConfig } from './types.ts'
 /** Cordis plugin name (the Loader entry and client bundle id). */
 export const name = 'juzi-at-mention'
 
-/** Services required before load: the Typert registry, the settings provider, the agent registry, and the session query engine (the mounted session-reference resolver reads it). */
-export const inject = ['typert', 'settings', 'agents', 'sessionQuery']
+/** Services required before load: the Typert registry, the settings provider, the agent registry, the session query engine, and the host session-reference resolver. */
+export const inject = ['typert', 'settings', 'agents', 'sessionQuery', 'sessionReferenceResolver']
 
 export { DEFAULT_IGNORE_DIRS, DEFAULT_IGNORE_FILES } from './defaults.ts'
 
@@ -86,11 +85,10 @@ export function apply(ctx: Context, config?: Config): void {
     return () => { void dispose() }
   }, 'juzi-at-mention: typert manifest')
 
-  // Cross-session mention support: mount the harness's session-reference
-  // resolver once on the root context, then mark `@[label](dsh-session:…)`
-  // mentions at each agent's pre-step boundary. The resolver reads the
-  // referenced sessions' surfaces and injects a bounded read-only snapshot.
-  const sessionReferenceResolver = new SessionReferenceResolver(ctx)
+  // Cross-session mention support: reuse the harness's root resolver, then mark
+  // `@[label](dsh-session:…)` mentions at each agent's pre-step boundary. The
+  // resolver reads referenced session surfaces and injects a bounded snapshot.
+  const sessionReferenceResolver = ctx.sessionReferenceResolver
   ctx.on('agent/created', ({ agent }) => {
     agent.ctx.effect(() => {
       const stop = agent.ctx.on('agent/pre-step', async ({ messages, signal }, next) => {
